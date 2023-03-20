@@ -1,82 +1,59 @@
 import sys
 import threading
-import numpy
+
+
+class Node:
+    def __init__(self):
+        self.children = []
+
 
 def compute_height(n, parents):
-    # Write this function
-    max_height = 0
-    # Create a dictionary to store the parent and its children
-    parent_dict = dict()
-    # Loop through the parents array to store the parent and its children
-    for i in range(n):
-        # If the parent is -1, the node is the root
-        if parents[i] == -1:
-            root = i
-        # Otherwise, store the parent and its children in the dictionary
+    nodes = [Node() for _ in range(n)]
+    root = None
+    for i, parent in enumerate(parents):
+        if parent == -1:
+            root = nodes[i]
         else:
-            if parents[i] not in parent_dict:
-                parent_dict[parents[i]] = [i]
-            else:
-                parent_dict[parents[i]].append(i)
-
-    # Use a queue to traverse the tree
-    queue = [root]
-    # Keep track of the level of each node
-    level_dict = {root: 0}
-    # Traverse the tree
-    while queue:
-        node = queue.pop(0)
-        # Get the level of the current node
-        level = level_dict[node]
-        # Update the maximum height
-        max_height = max(max_height, level)
-        # Get the children of the current node
-        if node in parent_dict:
-            for child in parent_dict[node]:
-                queue.append(child)
-                level_dict[child] = level + 1
-    return max_height
+            nodes[parent].children.append(nodes[i])
+    
+    if not root:
+        return 0
+    
+    def dfs(node):
+        if not node.children:
+            return 1
+        heights = [dfs(child) for child in node.children]
+        return max(heights) + 1
+    
+    return dfs(root)
 
 
 def main():
-    # implement input form keyboard and from files
-
-    # Ask user to input from keyboard or file
-    while True:
-        user_input = input("Please input 'k' to input from keyboard or 'f' to input from file: ")
-        if user_input == 'k':
-            break
-        elif user_input == 'f':
-            # Ask user to enter file name
-            while True:
-                file_name = input("Please enter file name: ")
-                # Check if the file name contains letter 'a'
-                if 'a' in file_name:
-                    print("File name cannot contain letter 'a'!")
-                    continue
-                # Open the file
-                try:
-                    f = open(file_name, 'r')
-                    break
-                except FileNotFoundError:
-                    print("File not found!")
-                    continue
-            # Read the file
-            content = f.read().split('\n')
-            f.close()
-            # Get the number of nodes and parents array
-            n = int(content[0])
-            parents = list(map(int, content[1].split(' ')))
-            break
-        else:
-            print("Please input either 'k' or 'f'!")
-            continue
-    # Call the function and output it's result
+    input_type = input("Enter input type (F for file, K for keyboard): ")
+    if input_type.lower() == "f":
+        file_name = input("Enter file name: ")
+        while "a" in file_name:
+            file_name = input("Enter file name (cannot contain letter a): ")
+        try:
+            with open("inputs/" + file_name, "r") as file:
+                n = int(file.readline())
+                parents = list(map(int, file.readline().split()))
+        except FileNotFoundError:
+            print("File not found.")
+            return
+    elif input_type.lower() == "k":
+        n = int(input("Enter number of nodes: "))
+        parents = list(map(int, input("Enter parents separated by spaces: ").split()))
+    else:
+        print("Invalid input type.")
+        return
+    
     print(compute_height(n, parents))
 
 
-if __name__ == "__main__":
-    sys.setrecursionlimit(10**7)  # max depth of recursion
-    threading.stack_size(2**27)   # new thread will get stack of such size
-    threading.Thread(target=main).start()
-main()
+# In Python, the default limit on recursion depth is rather low,
+# so raise it here for this problem. Note that to take advantage
+# of bigger stack, we have to launch the computation in a new thread.
+sys.setrecursionlimit(10**7)  # max depth of recursion
+threading.stack_size(2**27)   # new thread will get stack of such size
+threading.Thread(target=main).start()
